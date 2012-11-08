@@ -1,0 +1,9 @@
+.link_to_grails_plugins
+.settings
+.classpath
+.project
+.DS_Store
+web-app/WEB-INF
+grails-app/conf/hslpush-config.properties
+target
+target-eclipse
