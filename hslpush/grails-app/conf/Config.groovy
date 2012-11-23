@@ -69,7 +69,7 @@ grails.hibernate.cache.queries = true
 environments {
     development {
         grails.logging.jul.usebridge = true
-		//grails.serverURL = "http://hslpush.elasticbeanstalk.com"
+		//grails.serverURL = "http://mytesthsl.com:8080"
     }
     production {
         grails.logging.jul.usebridge = false

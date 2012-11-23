@@ -13,7 +13,8 @@
 		<link rel="apple-touch-icon" href="${resource(dir: 'images', file: 'apple-touch-icon.png')}">
 		<link rel="apple-touch-icon" sizes="114x114" href="${resource(dir: 'images', file: 'apple-touch-icon-retina.png')}">
 		<!--  <link rel="stylesheet" href="${resource(dir: 'css', file: 'main.css')}" type="text/css"> -->
-		<link rel="stylesheet" href="${resource(dir: 'css', file: 'mobile.css')}" type="text/css">
+		<!-- <link rel="stylesheet" href="${resource(dir: 'css', file: 'mobile.css')}" type="text/css">  -->
+		<link rel="stylesheet" href="${resource(dir: 'css', file: 'jquery.mobile-1.2.0.min.css')}" type="text/css">
 		<link rel="stylesheet" href="${resource(dir: 'css', file: 'twitter-auth.css')}" type="text/css">
 		
 		<r:script>
@@ -42,6 +43,7 @@
 	<body>
 		<g:layoutBody/>
 		<g:javascript library="application"/>
+		<g:javascript library="jquerymobile"/>
         <r:layoutResources />
 	</body>
 </html>
