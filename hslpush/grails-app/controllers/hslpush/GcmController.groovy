@@ -7,17 +7,21 @@ import hslpush.user.LineOfInterest
 
 class GcmController {
 
-	def gcmService
-
-	def signal() {
-		
-				GcmUser.findAll().each { user ->
-					gcmService.sendMessage(user, "test signal from hslpush")
-				}
-		
-				render "done."
-			}
+	static allowedMethods = [signal:'GET', index:'POST']
 	
+	def gcmService
+	
+	def signal() {
+
+		def signalThese = LineOfInterest.findAllByCode(params.code) 
+		
+		signalThese.each {
+			gcmService.sendMessage(it.user, "Line " + it.code + " signaled")
+		}
+
+		render (status: 200, text: "OK")
+	}
+
 	def index() {
 
 		def user = GcmUser.findByUuid(params.uuid)
@@ -31,10 +35,12 @@ class GcmController {
 
 		render(status: 200 , text: "OK")
 	}
-	
+
 	def private addNewUser(uuid, registrationId, lineList) {
 		GcmUser user = new GcmUser(uuid: uuid, registrationId: registrationId)
 		user.linesOfInterest = []
+		
+		// TODO limit number of lines to prevent abuse
 
 		lineList.each { line ->
 			line.codes.each { code ->
@@ -42,32 +48,39 @@ class GcmController {
 				user.linesOfInterest << lof
 			}
 		}
-		
+
 		user.save()
 	}
-	
+
 	def private updateUser(GcmUser user, registrationId, lineList) {
+		
+		// TODO Limit number of lines to prevent abuse
+		
 		def lineHash = [:]
 		lineList.each { line ->
 			line.codes.each { code ->
 				lineHash[code] = line
 			}
 		}
+
+		def toDelete = user.linesOfInterest.findAll { !lineHash.containsKey(it.code) }
+		toDelete.each {
+			lineHash.remove(it.code)
+			user.linesOfInterest.remove(it)
+			it.delete() 
+		}
 		
-		user.linesOfInterest.each { lineOfInterest ->
-			if(lineHash.containsKey(lineOfInterest.code)) {
-				if(lineHash[lineOfInterest.code].transportType != lineOfInterest.transportType) {
-					lineOfInterest.transportType = lineHash[lineOfInterest.code].transportType
-				}
-				lineHash.remove(lineOfInterest.code)
-			} else {
-				user.linesOfInterest.remove(lineOfInterest)
-				lineOfInterest.delete()
+		def toUpdate = user.linesOfInterest.findAll { lineHash.containsKey(it.code) }
+		user.linesOfInterest.each {
+			if(it.transportType != lineHash[it.code].transportType) {
+				it.transportType = lineHash[it.code].transportType
+				it.save()
 			}
+			lineHash.remove(it.code)
 		}
 		
 		lineHash.each { code, line ->
-			LineOfInterest newLof = new LineOfInterest(code:code, transportType: line.transportType)
+			LineOfInterest newLof = new LineOfInterest(code:code, transportType: line.transportType, user: user)
 			user.linesOfInterest << newLof
 		}
 

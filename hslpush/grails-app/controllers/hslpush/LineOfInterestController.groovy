@@ -1,4 +1,4 @@
-package hsplush
+package hslpush
 
 import hslpush.user.LineOfInterest
 

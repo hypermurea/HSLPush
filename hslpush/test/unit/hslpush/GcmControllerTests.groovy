@@ -70,8 +70,9 @@ class GcmControllerTests {
 	@Test
 	void whenLinesRemovedUserIsUpdated() {
 		GcmUser user = new GcmUser(uuid: MOCK_UUID, registrationId: ORIGINAL_REGID, linesOfInterest: [])
-		user.linesOfInterest << new LineOfInterest(code: "195X", transportType: 1)
 		user.linesOfInterest << new LineOfInterest(code: "457", transportType: 7)
+		def INITIAL_TRANSPORT_TYPE = 1
+		user.linesOfInterest << new LineOfInterest(code: "195X", transportType: INITIAL_TRANSPORT_TYPE)
 		user.save()
 		
 		params.uuid = MOCK_UUID
@@ -84,6 +85,7 @@ class GcmControllerTests {
 		user = GcmUser.findAll()[0]
 		assert user.linesOfInterest.size() == 1
 		assert user.linesOfInterest.toArray()[0].code == "195X"
+		assert user.linesOfInterest.toArray()[0].transportType == 2 
 		assert user.registrationId == NEW_REGID
 			
 		assert response.status == 200
@@ -113,4 +115,54 @@ class GcmControllerTests {
 		assert response.status == 200
 		assert response.text == "OK"
 	}
+	
+	@Test
+	void whenUserWithNoInterestsChangedUserIsUpdated() {
+		params.uuid = MOCK_UUID
+		params.regId = NEW_REGID
+		params.lof = "[]"
+		
+		controller.index()
+		
+		assert GcmUser.count() == 1
+		def user = GcmUser.findAll()[0]
+		assert user.registrationId == NEW_REGID
+		assert user.uuid == MOCK_UUID
+		assert LineOfInterest.count() == 0
+		assert response.status == 200
+		assert response.text == "OK"
+		
+		response.reset()
+		params.lof = '[{"codes":["2194  1","2194  2"],"transportType":5,"name":"Elielinaukio-Tapiola","shortCode":"194"}]'
+		
+		controller.index()
+		
+		assert GcmUser.count() == 1
+		user = GcmUser.findAll()[0]
+		assert user.registrationId == NEW_REGID
+		assert user.uuid == MOCK_UUID
+		assert LineOfInterest.count() == 2
+		assert user.linesOfInterest.collect { it.code }.containsAll(["2194  1", "2194  2"])
+		assert response.status == 200
+		assert response.text == "OK"
+	}
+	
+	@Test
+	void interestedUsersSignaledOnCode() {
+		
+		GcmUser user = new GcmUser(uuid: MOCK_UUID, registrationId: ORIGINAL_REGID, linesOfInterest: [])
+		user.linesOfInterest << new LineOfInterest(code: "195", transportType: 1)
+		user.save()
+		GcmUser user2 = new GcmUser(uuid: MOCK_UUID + "2", registrationId: ORIGINAL_REGID + "2", linesOfInterest: [])
+		user2.linesOfInterest << new LineOfInterest(code: "195", transportType: 1)
+		user2.linesOfInterest << new LineOfInterest(code: "505", transportType: 7)
+		params.code = "505"
+		user2.save()
+		
+		controller.signal()
+	
+		
+	}
+	
+	
 }

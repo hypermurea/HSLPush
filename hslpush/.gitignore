@@ -7,3 +7,4 @@ web-app/WEB-INF
 grails-app/conf/hslpush-config.properties
 target
 target-eclipse
+stacktrace.log
