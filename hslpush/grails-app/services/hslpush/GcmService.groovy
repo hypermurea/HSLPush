@@ -11,7 +11,10 @@ class GcmService {
 		log.error("got here")
 		def sender = new Sender(grailsApplication.config.gcm.api.key)
 		def DISRUPTION_DESCRIPTION = "desc"
-		def messageFrame = new Message.Builder().addData(DISRUPTION_DESCRIPTION, message).build()
+		def DISRUPTION_LINE = "line"
+		def messageFrame = new Message.Builder().
+			addData(DISRUPTION_DESCRIPTION, message).
+			build()
 		def result = sender.send(messageFrame, user.registrationId, grailsApplication.config.gcm.send.retries.toInteger())
 		
 		if(result.getMessageId() != null) {

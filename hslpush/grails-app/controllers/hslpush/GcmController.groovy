@@ -13,7 +13,7 @@ class GcmController {
 	
 	def signal() {
 
-		def signalThese = LineOfInterest.findAllByCode(params.code) 
+		def signalThese = LineOfInterest.findAllByCodeAndTransportType(params.code, params.transportType) 
 		
 		signalThese.each {
 			gcmService.sendMessage(it.user, "Line " + it.code + " signaled")

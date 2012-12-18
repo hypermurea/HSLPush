@@ -5,20 +5,21 @@ import hslpush.user.GcmUser
 
 class QueryDisruptionsJob {
 
+	public static final GENERAL_DISRUPTION_CODE = 14
+
 	static triggers = { simple repeatInterval: 30000l // execute job once in 30 seconds
 	}
 
 	def gcmService
 	def pushoverService
-
-	static PUSHOVER_APP_ID = "1IKVsQLaRKEnGNh4McWccaPLlZPMO2"
+	def hslDisruptionUrl = "http://www.poikkeusinfo.fi/xml/v2/fi"
 
 	def execute() {
 
 		//def HSL_DISRUPTION_URL = "http://www.poikkeusinfo.fi/xml/v2/fi/291020121800"
-		def HSL_DISRUPTION_URL = "http://www.poikkeusinfo.fi/xml/v2/fi"
-		def disruptionReport = new XmlSlurper().parse(HSL_DISRUPTION_URL)
-		log.error "disruptions in effect: " + disruptionReport.@valid
+		//def HSL_DISRUPTION_URL = "http://www.poikkeusinfo.fi/xml/v2/fi"
+		def disruptionReport = new XmlSlurper().parse(hslDisruptionUrl)
+		log.info "disruptions in effect: " + disruptionReport.@valid
 
 		if (disruptionReport.@valid.text().toInteger() > 0) {
 
@@ -27,113 +28,80 @@ class QueryDisruptionsJob {
 			}.list()
 			disruptions.sort{
 				it.@id.text().toInteger()
-			} // assumes that disruptions follow an increasing id pattern
+			}
 
 			disruptions.each { disruption ->
 
-				def users = GcmUser.find { lastReportedDisruptionId < disruption.@id.text().toInteger() }
-				//def users = SecurityUser.findAll()
-				
-				users.each { user ->
-					
-					def linesOfInterestCodes = user.linesOfInterest.collect { it.code } 
-					
-					boolean pushWarranted = false;
-					if(disruption.TARGETS.LINE.size() > 0) {
-						disruption.TARGETS.LINE.each { line ->
-							log.error "checking line against user preferences: " + line.text() + ", lines of interest: " + linesOfInterestCodes
-							if(linesOfInterestCodes.contains(line.text())) {
-								log.error("push warranted")
-								pushWarranted = true;
-							}
-						}
-					} else {
-						pushWarranted = true;
-					}
-					
-					log.error("report: " + disruption.INFO.TEXT.text())
+				if(disruption.TARGETS.LINE.size() > 0) {
+					log.error("line disruption to users")
+					signalUsersInterestedInLine(disruption)
+				} else
+				if(disruption.TARGETS.LINETYPE.size() == 1) {
+					log.error("linetype disruption to users")
+					signalUsersInterestedInLineType(disruption)
+				} else {
+					log.error("signal all users")
+					signalAllUsers(disruption)
+				}
 
-					if(pushWarranted) {
-						// multicast message would prob work better?
-						gcmService.sendMessage(user, disruption.INFO.TEXT.text())
-						//pushoverService.send(user.pushoverId, disruption.INFO.TEXT.text())
-						user.lastReportedDisruptionId = disruption.@id.text().toInteger()
+		}
+	} else {
+		log.info("No disruptions in effect")
+	}
+}
+
+def signalUsersInterestedInLine(disruption) {
+	def disruptionId = disruption.@id.text().toInteger()
+	def lines = disruption.TARGETS.LINE.collect { line -> ["code": line.@id.text(), "linetype": line.@linetype.text().toInteger() ]}
+
+	def interestedUsers = GcmUser.createCriteria().list {
+		lt("lastReportedDisruptionId", disruptionId)
+		linesOfInterest {
+			or {
+				lines.each { line ->
+					and {
+						eq("code", line["code"])
+						eq("transportType", line["linetype"] )
 					}
-					
-					user.save()
-					
 				}
 			}
-
-
-		} else {
-			log.error "no disruptions currently in effect"
 		}
 	}
+
+	sendMessages(disruption.@id.text().toInteger(), disruption.INFO.TEXT.text(), interestedUsers)
+}
+
+def signalUsersInterestedInLineType(disruption) {
+	def disruptionId = disruption.@id.text().toInteger()
+	def lineType = disruption.TARGETS.LINETYPE.@id.text().toInteger()
 	
-	
-	/**
-	def execute() {
-		
-				//def HSL_DISRUPTION_URL = "http://www.poikkeusinfo.fi/xml/v2/fi/291020121800"
-				def HSL_DISRUPTION_URL = "http://www.poikkeusinfo.fi/xml/v2/fi"
-				def disruptionReport = new XmlSlurper().parse(HSL_DISRUPTION_URL)
-				log.error "disruptions in effect: " + disruptionReport.@valid
-		
-				if (disruptionReport.@valid.text().toInteger() > 0) {
-		
-					def disruptions = disruptionReport.DISRUPTION.findAll {
-						it.VALIDITY.@status.text().toInteger() == 1
-					}.list()
-					disruptions.sort{
-						it.@id.text().toInteger()
-					} // assumes that disruptions follow an increasing id pattern
-		
-					disruptions.each { disruption ->
-		
-						def users = SecurityUser.find { lastReportedDisruptionId < disruption.@id.text().toInteger() }
-						//def users = SecurityUser.findAll()
-						
-						users.each { user ->
-							
-							def lines = new String(user.linesOfInterest)
-							lines = lines.replace(' ', ',')
-							def lineCollection = lines.tokenize(",")
-							
-							boolean pushWarranted = false;
-							if(disruption.TARGETS.LINE.size() > 0) {
-								disruption.TARGETS.LINE.each { line ->
-									log.error "checking line against user preferences: " + line.text() + ", linecollection: " + lineCollection.toArray()
-									if(lineCollection.contains(line.text())) {
-										log.error("push warranted")
-										pushWarranted = true;
-									}
-								}
-							} else {
-								pushWarranted = true;
-							}
-							
-							log.error("report: " + disruption.INFO.TEXT.text())
-		
-							if(pushWarranted) {
-								// multicast message would prob work better?
-								androidGcmService.sendInstantMessage([test:disruption.INFO.TEXT.text()], [user.pushoverId])
-								//pushoverService.send(user.pushoverId, disruption.INFO.TEXT.text())
-								user.lastReportedDisruptionId = disruption.@id.text().toInteger()
-							}
-							
-							user.save()
-							
-						}
-					}
-		
-		
-				} else {
-					log.error "no disruptions currently in effect"
-				}
+	if(lineType == GENERAL_DISRUPTION_CODE) {
+		sendMessages(disruption, GcmUser.findAll { lastReportedDisruptionId < disruptionId } )
+	} else {
+
+		def interestedUsers = GcmUser.createCriteria().list {
+			lt("lastReportedDisruptionId", disruptionId)
+			linesOfInterest {
+				eq("transportType", lineType)
 			}
-	
-	*/
-	
+		}
+		log.error("interested users: " + interestedUsers.size())
+		sendMessages(disruptionId, disruption.INFO.TEXT.text(), interestedUsers)
+	}
+}
+
+def signalAllUsers(disruption) {
+	def disruptionId = disruption.@id.text().toInteger()
+	sendMessages(disruptionId, disruption.INFO.TEXT.text(), GcmUser.findAll { lastReportedDisruptionId < disruptionId })
+}
+
+def sendMessages(disruptionId, message, users) {
+	users.each { user ->
+		log.error "sending a message to user: " + user.uuid
+		gcmService.sendMessage(user, message)
+		user.lastReportedDisruptionId = disruptionId
+		user.save()
+	}
+}
 
 }

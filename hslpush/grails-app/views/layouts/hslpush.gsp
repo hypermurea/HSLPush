@@ -15,7 +15,6 @@
 		<!--  <link rel="stylesheet" href="${resource(dir: 'css', file: 'main.css')}" type="text/css"> -->
 		<!-- <link rel="stylesheet" href="${resource(dir: 'css', file: 'mobile.css')}" type="text/css">  -->
 		<link rel="stylesheet" href="${resource(dir: 'css', file: 'jquery.mobile-1.2.0.min.css')}" type="text/css">
-		<link rel="stylesheet" href="${resource(dir: 'css', file: 'twitter-auth.css')}" type="text/css">
 		
 		<r:script>
 

@@ -106,27 +106,3 @@ grails.rest.injectInto = ["Controller", "Service", "Routes", "Job"]
 grails.plugins.springsecurity.userLookup.userDomainClassName = 'hslpush.user.SecurityUser'
 grails.plugins.springsecurity.userLookup.authorityJoinClassName = 'hslpush.user.SecurityUserRole'
 grails.plugins.springsecurity.authority.className = 'hslpush.user.Role'
-
-security {
-	twitter {
-		 language = "en_US"
-		 button.text = "Login with Twitter"
-		 popup = true // was false
- 
-		 autoCreate {
-			 active = true
-			 roles = ["ROLE_USER", "ROLE_TWITTER"]
-		 }
- 
-		 filter {
-			 processUrl = "/j_spring_twitter_security_check"
-			 processPopupUrl = "/twitterAuth/popup"
-		 }
- 
-		 domain {
-			 classname = "TwitterUser"
-			 connectionPropertyName = "user"
-		 }
-	 }
- }
-

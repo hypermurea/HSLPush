@@ -12,6 +12,6 @@ import org.junit.*
 class LineOfInterestTests {
 
     void testSomething() {
-       fail "Implement me"
+       // TODO Implement constraint checks if need be
     }
 }
