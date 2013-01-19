@@ -33,14 +33,11 @@ class QueryDisruptionsJob {
 			disruptions.each { disruption ->
 
 				if(disruption.TARGETS.LINE.size() > 0) {
-					log.error("line disruption to users")
 					signalUsersInterestedInLine(disruption)
 				} else
 				if(disruption.TARGETS.LINETYPE.size() == 1) {
-					log.error("linetype disruption to users")
 					signalUsersInterestedInLineType(disruption)
 				} else {
-					log.error("signal all users")
 					signalAllUsers(disruption)
 				}
 
@@ -60,7 +57,7 @@ def signalUsersInterestedInLine(disruption) {
 			or {
 				lines.each { line ->
 					and {
-						eq("code", line["code"])
+						eq("shortCode", line["code"])
 						eq("transportType", line["linetype"] )
 					}
 				}
@@ -76,7 +73,7 @@ def signalUsersInterestedInLineType(disruption) {
 	def lineType = disruption.TARGETS.LINETYPE.@id.text().toInteger()
 	
 	if(lineType == GENERAL_DISRUPTION_CODE) {
-		sendMessages(disruption, GcmUser.findAll { lastReportedDisruptionId < disruptionId } )
+		sendMessages(disruptionId, disruption.INFO.TEXT.text(), GcmUser.findAll { lastReportedDisruptionId < disruptionId } )
 	} else {
 
 		def interestedUsers = GcmUser.createCriteria().list {
@@ -85,7 +82,6 @@ def signalUsersInterestedInLineType(disruption) {
 				eq("transportType", lineType)
 			}
 		}
-		log.error("interested users: " + interestedUsers.size())
 		sendMessages(disruptionId, disruption.INFO.TEXT.text(), interestedUsers)
 	}
 }
@@ -97,7 +93,6 @@ def signalAllUsers(disruption) {
 
 def sendMessages(disruptionId, message, users) {
 	users.each { user ->
-		log.error "sending a message to user: " + user.uuid
 		gcmService.sendMessage(user, message)
 		user.lastReportedDisruptionId = disruptionId
 		user.save()

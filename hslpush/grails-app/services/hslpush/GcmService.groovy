@@ -26,7 +26,7 @@ class GcmService {
 		} else {
 			def error = result.getErrorCodeName()
 			if(error == Constants.ERROR_NOT_REGISTERED) {
-				log.error "User not registered with '" + user.registrationId + ", deleting account info." 
+				//log.error "User not registered with '" + user.registrationId + ", deleting account info." 
 				//gcmUser.delete()
 			} else {
 				log.error "error occurred, identifier: " + result.getErrorCodeName()

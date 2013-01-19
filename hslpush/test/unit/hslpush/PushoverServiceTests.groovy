@@ -12,6 +12,5 @@ import org.junit.*
 class PushoverServiceTests {
 
     void testSomething() {
-        fail "Implement me"
     }
 }
